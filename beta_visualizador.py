@@ -10,6 +10,7 @@
 
 from PySide2 import QtGui, QtWidgets, QtCore
 from PySide2.QtWidgets import QFileDialog, QVBoxLayout, QGroupBox
+from PySide2.QtCore import Qt
 import pydicom
 import numpy as np
 import glob
@@ -60,6 +61,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.dicomFiles = list()
         self.dicomPath = ""
         self.curDicom = -1
+        self.max_val = None
         self.qImg = None
         self.qImg_L_CC = None
         self.qImg_R_CC = None
@@ -114,6 +116,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.imageSelector.currentChanged.connect(self.paintEvent)
 
         self.opcionesVisualizacion.clicked.connect(self.show_group_box)
+        self.checkbox.stateChanged.connect(self.negativo)
+        # self.checkbox1.stateChanged.connect(self.contraste)
+        # self.checkbox2.stateChanged.connect(self.fun_log)
         
         #self.zoomINButton.clicked.connect(self.zoomIn)
         #self.zoomOutButton.clicked.connect(self.zoomOut)
@@ -208,35 +213,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # self.dicom[0x0028,0x1051].value = 925
             print(self.dicom)
             self.dicom_img = self.dicom.pixel_array
-            image = self.dicom_img
+            self.image = self.dicom_img
 
             try:
-                max_val = self.dicom[0x0028,0x0107].value
-                lut = np.zeros(max_val+1)
-                for i in range(max_val+1):
-                    lut[i] = max_val - i
-                # negativo = lut[self.dicom_img]    
+                self.max_val = self.dicom[0x0028,0x0107].value    
             except KeyError:
-                max_val = np.max(image)
-                lut = np.zeros(max_val+1)
-                for i in range(max_val+1):
-                    lut[i] = max_val - i
-                # negativo = lut[self.dicom_img]  
+                self.max_val = np.max(self.image)
             try:
                 if(self.dicom[0x2050,0x0020]).value == 'INVERSE':
-                    image = max_val - image
-                # image = (image/max_val)*(255)
-                # image = image.astype(np.uint8)
-                negativo = lut[image] 
-                image = (negativo/max_val*255).astype(np.uint8)
+                    self.image = self.max_val - self.image
+                self.image = (self.image/self.max_val)*(255)
+                self.image = self.image.astype(np.uint8)
+
             except KeyError:
-                # image = (image/max_val)*(255)
-                # image = image.astype(np.uint8)
-                negativo = lut[image]
-                image = (negativo/max_val*255).astype(np.uint8)
+                self.image = (self.image/self.max_val)*(255)
+                self.image = self.image.astype(np.uint8)
             # image = (image/max_val)*(255)
             # image = image.astype(np.uint8)
-
+            
 
             print("  ")
             print("-------LA SAMPLE---------")
@@ -253,11 +247,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if(self.imageCounter%25 == 0):
                 self.copiaSeguridad()
 
-            self.h, self.w = image.shape
+            self.h, self.w = self.image.shape
 
 
             
-            self.qImg = QtGui.QImage(image,self.w,self.h,QtGui.QImage.Format_Grayscale8)
+            self.qImg = QtGui.QImage(self.image,self.w,self.h,QtGui.QImage.Format_Grayscale8)
             self.qImg.convertTo(QtGui.QImage.Format_RGB888)
             
             self.dicomImgs["Lateralidad"] = lat_orientation
@@ -390,10 +384,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     
                     self.labels[self.currenIndexTab].setPixmap(actual_tab_image)
                     self.scrollImages[self.currenIndexTab].setWidget(self.labels[self.currenIndexTab])
-            
-        
-
-
             
         
     def contextMenuEvent(self, event):
@@ -558,7 +548,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def show_group_box(self):
         self.group_box.setVisible(True)
-
+    
+    def negativo(self, state):
+        if state == Qt.Checked:
+            print(self.image)
+            lut = np.zeros(self.max_val+1)
+            for i in range(self.max_val+1):
+                lut[i] = self.max_val - i
+            negativo = lut[self.dicom_img] 
+            self.image = (negativo/self.max_val*255).astype(np.uint8)
+            print(self.image)
+        else: 
+            print("Nada")
+        self.update()
+        
 
     def guardarJSON(self):
         file_path = os.path.join(os.path.join(self.dicomPath,self.patients[self.curPatient]), "Rois.json")
