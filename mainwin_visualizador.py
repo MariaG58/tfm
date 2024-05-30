@@ -213,18 +213,31 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.opcionesVisualizacion)
 
         self.group_box = QGroupBox("Opciones Visualización")
-        self.group_box.setFixedSize(300, 150)
+        self.group_box.setFixedSize(400, 200)
+        self.group_box.setStyleSheet("""
+            QGroupBox::title {
+                subcontrol-position: top center;
+            }
+        """)
         self.group_box_layout = QVBoxLayout()
         self.group_box.setLayout(self.group_box_layout)
 
+        h_layout = QHBoxLayout()
+        v_layout = QVBoxLayout()
         self.checkbox = QCheckBox("Negativo")
-        self.group_box_layout.addWidget(self.checkbox)
+        v_layout.addWidget(self.checkbox)
         self.checkbox1 = QCheckBox("Contraste")
-        self.group_box_layout.addWidget(self.checkbox1)
+        v_layout.addWidget(self.checkbox1)
         self.checkbox2 = QCheckBox("Función logarítmica")
-        self.group_box_layout.addWidget(self.checkbox2)
+        v_layout.addWidget(self.checkbox2)
+        h_layout.addLayout(v_layout)
 
-        # self.group_box.setVisible(False)  # Inicialmente oculto
+        self.slider = QSlider()
+        self.slider.setOrientation(Qt.Vertical)
+        h_layout.addWidget(self.slider)
+        self.group_box_layout.addLayout(h_layout)
+
+        # self.group_box.setVisible(False)
         # self.layout.addWidget(self.group_box)
 
         self.gridLayout_5.addLayout(self.horizontalLayout_2, 3, 0, 1, 1)
