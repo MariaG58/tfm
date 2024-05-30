@@ -9,7 +9,7 @@
 
 
 from PySide2 import QtGui, QtWidgets, QtCore
-from PySide2.QtWidgets import QFileDialog
+from PySide2.QtWidgets import QFileDialog, QVBoxLayout, QGroupBox
 import pydicom
 import numpy as np
 import glob
@@ -112,6 +112,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.zoomInButton.clicked.connect(self.zoomIn)
         self.zoomOutButton.clicked.connect(self.zoomOut)
         self.imageSelector.currentChanged.connect(self.paintEvent)
+
+        self.opcionesVisualizacion.clicked.connect(self.show_group_box)
         
         #self.zoomINButton.clicked.connect(self.zoomIn)
         #self.zoomOutButton.clicked.connect(self.zoomOut)
@@ -553,6 +555,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 anot["Categoria"] = self.comboBox_3.currentText()
                 self.guardarJSON()
                 self.update()
+
+    def show_group_box(self):
+        self.group_box.setVisible(True)
 
 
     def guardarJSON(self):
