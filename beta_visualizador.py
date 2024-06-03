@@ -241,6 +241,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 image = (negativo/max_val*255).astype(np.uint8)
             
             self.slider.setMaximum(1000)
+            self.slider.setMinimum(30)
             # self.slider.setValue(100)
 
             if self.checkbox1.isChecked():    
