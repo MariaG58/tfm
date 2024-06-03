@@ -118,8 +118,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.opcionesVisualizacion.clicked.connect(self.show_group_box)
         self.checkbox.stateChanged.connect(self.loadCurrentPatient)
-        # self.checkbox1.stateChanged.connect(self.loadCurrentPatient)
+        self.checkbox1.stateChanged.connect(self.loadCurrentPatient)
         self.checkbox2.stateChanged.connect(self.loadCurrentPatient)
+        self.slider.valueChanged.connect(self.loadCurrentPatient)
         
         #self.zoomINButton.clicked.connect(self.zoomIn)
         #self.zoomOutButton.clicked.connect(self.zoomOut)
@@ -239,6 +240,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 negativo = lut[image1] 
                 image = (negativo/max_val*255).astype(np.uint8)
             
+            self.slider.setMaximum(1000)
+            # self.slider.setValue(100)
+
+            if self.checkbox1.isChecked():    
+                lut = np.zeros(max_val+1)
+                
+                gamma = self.slider.value()/150
+                for i in range(max_val+1):
+                    lut[i] = max_val*(((i-min_val)/(max_val-min_val))**gamma)
+                potencia = lut[image1]
+                image = (potencia/max_val*255).astype(np.uint8)
+
             if self.checkbox2.isChecked():
                 lut = np.zeros(max_val+1)
                 for i in range(max_val+1):
