@@ -157,19 +157,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # print("El número de pacientes válidos es: "+str(len(self.patients)))
         # print(self.patients)
         # print(self.patients[0])
-        
+
         if len(self.patients)>0:
             self.curPatient = 0
-            state = False
-            if (self.checkbox.checkState() != 0):
+            
+            if (self.checkbox.isChecked()):
                 state = True
-            self.loadCurrentPatient(state)
+            self.loadCurrentPatient(Qt.Unchecked)
         else:
             self.curPatient = -1
 
         
     def loadCurrentPatient(self, state):
-        # state = False
         self.PatientName.setText("Patient:"+self.patients[self.curPatient])
         patient_path = os.path.join(self.dicomPath, self.patients[self.curPatient])
         self.dicomFiles = glob.glob((patient_path) +'/*.dcm')
@@ -213,8 +212,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             lat_orientation = dicom_lat[1].rsplit(".")[0]
             print(lat_orientation)
             
-            # self.dicom[0x0028,0x1050].value = 3801
-            # self.dicom[0x0028,0x1051].value = 925
             print(self.dicom)
             self.dicom_img = self.dicom.pixel_array
             image = self.dicom_img
@@ -239,13 +236,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 for i in range(max_val+1):
                     lut[i] = max_val - i
                 negativo = lut[image1] 
-                # print(negativo)
                 image = (negativo/max_val*255).astype(np.uint8)
-                print(self.dicom_img)
                 print(image)
-                print (self.checkbox.checkState())
-        
-            
 
             print("  ")
             print("-------LA SAMPLE---------")
@@ -284,23 +276,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.curPatient += 1
             self.curPatient %= len(self.patients)
             print(self.curPatient)
-            state = False
-            if (self.checkbox.checkState() != 0):
-                state = True
-            self.loadCurrentPatient(state)
+            if (self.checkbox.isChecked()):
+                self.loadCurrentPatient(Qt.Checked)
+            else:
+                self.loadCurrentPatient(Qt.Unchecked)
 
     def prevPatient(self):
-        
         if self.curPatient > -1:
             self.curPatient -= 1
             print("--"+str(self.curPatient)+"--")
             if self.curPatient< 0:
                 self.curPatient = len(self.patients) - 1
                 print(self.curPatient)
-            state = False
-            if (self.checkbox.checkState() != 0):
-                state = True
-            self.loadCurrentPatient(state)
+            if (self.checkbox.isChecked()):
+                self.loadCurrentPatient(Qt.Checked)
+            else:
+                self.loadCurrentPatient(Qt.Unchecked)
     
             
     def mousePressEvent(self, mouse_event):
