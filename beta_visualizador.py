@@ -20,6 +20,7 @@ from mainwin_visualizador import Ui_MainWindow
 import pathlib
 import fnmatch
 import time  
+from math import log
 # from utils.maxValue import calculateMaxVal
 def jsonKeys2int(x):
     if isinstance(x, dict):
@@ -117,8 +118,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.opcionesVisualizacion.clicked.connect(self.show_group_box)
         self.checkbox.stateChanged.connect(self.loadCurrentPatient)
-        # self.checkbox1.stateChanged.connect(self.contraste)
-        # self.checkbox2.stateChanged.connect(self.fun_log)
+        # self.checkbox1.stateChanged.connect(self.loadCurrentPatient)
+        self.checkbox2.stateChanged.connect(self.loadCurrentPatient)
         
         #self.zoomINButton.clicked.connect(self.zoomIn)
         #self.zoomOutButton.clicked.connect(self.zoomOut)
@@ -160,15 +161,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         if len(self.patients)>0:
             self.curPatient = 0
-            
-            if (self.checkbox.isChecked()):
-                state = True
-            self.loadCurrentPatient(Qt.Unchecked)
+            self.loadCurrentPatient()
         else:
             self.curPatient = -1
 
         
-    def loadCurrentPatient(self, state):
+    def loadCurrentPatient(self):
         self.PatientName.setText("Patient:"+self.patients[self.curPatient])
         patient_path = os.path.join(self.dicomPath, self.patients[self.curPatient])
         self.dicomFiles = glob.glob((patient_path) +'/*.dcm')
@@ -219,10 +217,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             image1 = image
 
             try:
-                max_val = self.dicom[0x0028,0x0107].value    
+                max_val = self.dicom[0x0028,0x0107].value   
+                min_val = self.dicom[0x0028,0x0106].value 
             except KeyError:
                 max_val = np.max(image)
-            
+                min_val = np.min(image)
+
             try:
                 if(self.dicom[0x2050,0x0020]).value == 'INVERSE':
                     image1 = max_val - image
@@ -231,13 +231,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             except KeyError:
                 image = (image/max_val*255).astype(np.uint8)
     
-            if state == Qt.Checked:
+            # if state == Qt.Checked:
+            if self.checkbox.isChecked():
                 lut = np.zeros(max_val+1)
                 for i in range(max_val+1):
                     lut[i] = max_val - i
                 negativo = lut[image1] 
                 image = (negativo/max_val*255).astype(np.uint8)
-                print(image)
+            
+            if self.checkbox2.isChecked():
+                lut = np.zeros(max_val+1)
+                for i in range(max_val+1):
+                    lut[i] = max_val*log(1+((i-min_val)/(max_val-min_val)))
+                    # lut[i] = (exp(i / maximo) - 1) * (maximo - minimo) + minimo
+                logaritmo = lut[image1]
+                image = (logaritmo/max_val*255).astype(np.uint8)
 
             print("  ")
             print("-------LA SAMPLE---------")
@@ -276,10 +284,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.curPatient += 1
             self.curPatient %= len(self.patients)
             print(self.curPatient)
-            if (self.checkbox.isChecked()):
-                self.loadCurrentPatient(Qt.Checked)
-            else:
-                self.loadCurrentPatient(Qt.Unchecked)
+            # if (self.checkbox.isChecked()):
+            self.loadCurrentPatient()
+            # else:
+            #     self.loadCurrentPatient(Qt.Unchecked)
 
     def prevPatient(self):
         if self.curPatient > -1:
@@ -288,10 +296,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if self.curPatient< 0:
                 self.curPatient = len(self.patients) - 1
                 print(self.curPatient)
-            if (self.checkbox.isChecked()):
-                self.loadCurrentPatient(Qt.Checked)
-            else:
-                self.loadCurrentPatient(Qt.Unchecked)
+            # if (self.checkbox.isChecked()):
+            self.loadCurrentPatient()
+            # else:
+                # self.loadCurrentPatient(Qt.Unchecked)
     
             
     def mousePressEvent(self, mouse_event):
