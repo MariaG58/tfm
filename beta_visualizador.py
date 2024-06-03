@@ -61,7 +61,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.dicomFiles = list()
         self.dicomPath = ""
         self.curDicom = -1
-        self.max_val = None
+        # self.max_val = None
         self.qImg = None
         self.qImg_L_CC = None
         self.qImg_R_CC = None
@@ -116,7 +116,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.imageSelector.currentChanged.connect(self.paintEvent)
 
         self.opcionesVisualizacion.clicked.connect(self.show_group_box)
-        self.checkbox.stateChanged.connect(self.negativo)
+        self.checkbox.stateChanged.connect(self.loadCurrentPatient)
         # self.checkbox1.stateChanged.connect(self.contraste)
         # self.checkbox2.stateChanged.connect(self.fun_log)
         
@@ -160,12 +160,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         
         if len(self.patients)>0:
             self.curPatient = 0
-            self.loadCurrentPatient()
+            state = False
+            if (self.checkbox.checkState() != 0):
+                state = True
+            self.loadCurrentPatient(state)
         else:
             self.curPatient = -1
 
         
-    def loadCurrentPatient(self):
+    def loadCurrentPatient(self, state):
+        # state = False
         self.PatientName.setText("Patient:"+self.patients[self.curPatient])
         patient_path = os.path.join(self.dicomPath, self.patients[self.curPatient])
         self.dicomFiles = glob.glob((patient_path) +'/*.dcm')
@@ -213,23 +217,34 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             # self.dicom[0x0028,0x1051].value = 925
             print(self.dicom)
             self.dicom_img = self.dicom.pixel_array
-            self.image = self.dicom_img
+            image = self.dicom_img
+
+            image1 = image
 
             try:
-                self.max_val = self.dicom[0x0028,0x0107].value    
+                max_val = self.dicom[0x0028,0x0107].value    
             except KeyError:
-                self.max_val = np.max(self.image)
+                max_val = np.max(image)
+            
             try:
                 if(self.dicom[0x2050,0x0020]).value == 'INVERSE':
-                    self.image = self.max_val - self.image
-                self.image = (self.image/self.max_val)*(255)
-                self.image = self.image.astype(np.uint8)
+                    image1 = max_val - image
+                image = (image1/max_val*255).astype(np.uint8)
 
             except KeyError:
-                self.image = (self.image/self.max_val)*(255)
-                self.image = self.image.astype(np.uint8)
-            # image = (image/max_val)*(255)
-            # image = image.astype(np.uint8)
+                image = (image/max_val*255).astype(np.uint8)
+    
+            if state == Qt.Checked:
+                lut = np.zeros(max_val+1)
+                for i in range(max_val+1):
+                    lut[i] = max_val - i
+                negativo = lut[image1] 
+                # print(negativo)
+                image = (negativo/max_val*255).astype(np.uint8)
+                print(self.dicom_img)
+                print(image)
+                print (self.checkbox.checkState())
+        
             
 
             print("  ")
@@ -247,11 +262,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if(self.imageCounter%25 == 0):
                 self.copiaSeguridad()
 
-            self.h, self.w = self.image.shape
+            self.h, self.w = image.shape
 
 
             
-            self.qImg = QtGui.QImage(self.image,self.w,self.h,QtGui.QImage.Format_Grayscale8)
+            self.qImg = QtGui.QImage(image,self.w,self.h,QtGui.QImage.Format_Grayscale8)
             self.qImg.convertTo(QtGui.QImage.Format_RGB888)
             
             self.dicomImgs["Lateralidad"] = lat_orientation
@@ -269,16 +284,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.curPatient += 1
             self.curPatient %= len(self.patients)
             print(self.curPatient)
-            self.loadCurrentPatient()
+            state = False
+            if (self.checkbox.checkState() != 0):
+                state = True
+            self.loadCurrentPatient(state)
 
     def prevPatient(self):
+        
         if self.curPatient > -1:
             self.curPatient -= 1
             print("--"+str(self.curPatient)+"--")
             if self.curPatient< 0:
                 self.curPatient = len(self.patients) - 1
                 print(self.curPatient)
-            self.loadCurrentPatient()
+            state = False
+            if (self.checkbox.checkState() != 0):
+                state = True
+            self.loadCurrentPatient(state)
     
             
     def mousePressEvent(self, mouse_event):
@@ -396,7 +418,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         
         if confirmation == QtWidgets.QMessageBox.Yes:
             # self.guardarJSON()
+            self.group_box.close()
             event.accept()  
+            
         else:
             event.ignore()  
 
@@ -546,21 +570,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.guardarJSON()
                 self.update()
 
-    def show_group_box(self):
+    def show_group_box(self, event: QtGui.QCloseEvent):
         self.group_box.setVisible(True)
+
     
-    def negativo(self, state):
-        if state == Qt.Checked:
-            print(self.image)
-            lut = np.zeros(self.max_val+1)
-            for i in range(self.max_val+1):
-                lut[i] = self.max_val - i
-            negativo = lut[self.dicom_img] 
-            self.image = (negativo/self.max_val*255).astype(np.uint8)
-            print(self.image)
-        else: 
-            print("Nada")
-        self.update()
+    # def negativo(self, state):
+    #     if state == Qt.Checked:
+    #         print(self.image)
+    #         lut = np.zeros(self.max_val+1)
+    #         for i in range(self.max_val+1):
+    #             lut[i] = self.max_val - i
+    #         negativo = lut[self.dicom_img] 
+    #         self.image = (negativo/self.max_val*255).astype(np.uint8)
+    #         print(self.image)
+    #     else: 
+    #         print("Nada")
+    #     self.update()
         
 
     def guardarJSON(self):
